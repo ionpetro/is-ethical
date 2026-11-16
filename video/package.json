@@ -1,0 +1,29 @@
+{
+  "name": "is-ethical-video",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Launch video for Is it ethical? (Remotion)",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts IsEthical ../media/is-ethical.mp4 --codec=h264 --pixel-format=yuv420p --crf=18",
+    "render:wide": "remotion render src/index.ts IsEthicalWide ../media/is-ethical-wide.mp4 --codec=h264 --pixel-format=yuv420p --crf=18",
+    "poster": "remotion still src/index.ts IsEthical ../media/video-poster.png --frame=150",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.534",
+    "@remotion/google-fonts": "4.0.534",
+    "@remotion/transitions": "4.0.534",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "remotion": "4.0.534"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "typescript": "5.6.3"
+  },
+  "overrides": {
+    "zod": "4.6.6"
+  }
+}

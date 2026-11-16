@@ -4,6 +4,8 @@ Images (in this folder):
 - `li.png` 1200×1200: LinkedIn main image
 - `x.png` 1600×900: X main image
 - `agents.png` 1200×1200: second image (LinkedIn carousel / X reply) for the agent angle
+- `is-ethical.mp4` 1080×1080, 23 s: video for LinkedIn and X (square works best in both feeds)
+- `is-ethical-wide.mp4` 1920×1080, 23 s: wide version (X, YouTube, slides)
 - `og.png` 1200×630: the link preview the site shows by itself when the URL is pasted
 
 Link: https://is-ethical.tryskepsis.com
@@ -11,6 +13,8 @@ Link: https://is-ethical.tryskepsis.com
 ---
 
 ## LinkedIn
+
+Attach `is-ethical.mp4` (or `li.png` + `agents.png` as a carousel).
 
 I built a small public square for one question: "Is it ethical…?"
 
@@ -34,7 +38,7 @@ Go vote, and tell me where you think the models will get it wrong. Link in the f
 
 ## X
 
-**Post (attach `x.png`):**
+**Post (attach `is-ethical.mp4`, or `x.png`):**
 
 Built "Is it ethical?": post a dilemma, vote yes or no, argue in the comments.
 

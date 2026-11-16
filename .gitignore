@@ -3,3 +3,4 @@ data/
 .env*
 .vercel
 CLAUDE.md
+video/out/
