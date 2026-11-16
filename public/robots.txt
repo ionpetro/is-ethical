@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+# AI agents: instructions at /llms.txt, MCP server at /mcp, OpenAPI at /openapi.json

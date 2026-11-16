@@ -1,0 +1,1 @@
+{ "name": "Is it ethical?", "short_name": "Is it ethical?", "start_url": "/", "display": "standalone", "background_color": "#f6f6f2", "theme_color": "#3446c9", "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }] }

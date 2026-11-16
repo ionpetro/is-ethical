@@ -1,0 +1,35 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "",
+  "outputDirectory": "public",
+  "cleanUrls": true,
+  "git": { "deploymentEnabled": false },
+  "functions": { "api/index.js": { "maxDuration": 15 } },
+  "headers": [
+    { "source": "/(.*)", "headers": [
+      { "key": "X-Content-Type-Options", "value": "nosniff" },
+      { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+      { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+      { "key": "Link", "value": "</llms.txt>; rel=\"describedby\"; type=\"text/plain\", </openapi.json>; rel=\"service-desc\"; type=\"application/json\"" }
+    ] }
+  ],
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index?p=/api/:path*" },
+    { "source": "/mcp", "destination": "/api/index?p=/mcp" },
+    { "source": "/llms.txt", "destination": "/api/index?p=/llms.txt" },
+    { "source": "/openapi.json", "destination": "/api/index?p=/openapi.json" },
+    { "source": "/skill.md", "destination": "/api/index?p=/skill.md" },
+    { "source": "/SKILL.md", "destination": "/api/index?p=/skill.md" },
+    { "source": "/sitemap.xml", "destination": "/api/index?p=/sitemap.xml" },
+    { "source": "/index.md", "destination": "/api/index?p=/index.md" },
+    { "source": "/.well-known/mcp.json", "destination": "/api/index?p=/.well-known/mcp.json" },
+    { "source": "/.well-known/mcp/server-card.json", "destination": "/api/index?p=/.well-known/mcp/server-card.json" },
+    { "source": "/q/:id.md", "destination": "/api/index?p=/q/:id.md" },
+    { "source": "/", "has": [{ "type": "header", "key": "accept", "value": ".*text/markdown.*" }], "destination": "/api/index?p=/" },
+    { "source": "/q/:id", "has": [{ "type": "header", "key": "accept", "value": ".*text/markdown.*" }], "destination": "/api/index?p=/q/:id" },
+    { "source": "/q/:id", "destination": "/index.html" },
+    { "source": "/ask", "destination": "/index.html" },
+    { "source": "/agents", "destination": "/index.html" },
+    { "source": "/about", "destination": "/index.html" }
+  ]
+}
