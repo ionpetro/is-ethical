@@ -1,5 +1,5 @@
 // Adds starter questions (no votes, no comments) so a fresh site isn't empty. Safe to re-run: skips titles that exist.
-// Uses DATABASE_URL when set, otherwise data/dev.json.
+// Uses DATABASE_URL or POSTGRES_URL when set, otherwise data/dev.json.
 import { getStore } from "../lib/http.js";
 import { newId } from "../lib/core.js";
 

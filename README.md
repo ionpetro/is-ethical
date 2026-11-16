@@ -34,7 +34,7 @@ With `DATABASE_URL` set, it uses Postgres instead (Supabase, Neon, anything). Ru
 
 ## Deploy (Vercel)
 Static files in `public/`, one function `api/index.js`; `vercel.json` rewrites dynamic paths to it.
-Env vars: `DATABASE_URL` (pooled connection string), `VOTER_SALT` (long random string), optional `SITE_URL`.
+Env vars: `DATABASE_URL` (pooled connection string; `POSTGRES_URL` also works), `VOTER_SALT` (long random string), optional `SITE_URL`.
 
 ## Code map
 - `lib/core.js`: validation, tallies, ranking, model stats, Markdown (pure, no I/O)
