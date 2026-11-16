@@ -145,3 +145,18 @@ test("core: tally, ranking, model agreement", () => {
   assert.equal(parseAuthor({ name: "  Ana " }).name, "Ana");
   assert.equal(threadComments([{ id: "x", parent_id: "gone", score: 0, created_at: "2026" }]).length, 1);
 });
+
+test("votes store the visitor's country from Vercel, never expose it", async () => {
+  const { call, store } = mk();
+  const saved = [];
+  const upsert = store.upsertVote.bind(store);
+  store.upsertVote = async (v) => { saved.push(v.country); return upsert(v); };
+  const id = (await call("POST", "/api/questions", { body: { title: "Is it ethical to keep a library book you love", category: "everyday" } })).json.id;
+  await call("POST", `/api/questions/${id}/vote`, { key: "c1", body: { vote: "yes" }, headers: { "x-vercel-ip-country": "gr" } });
+  await call("POST", `/api/questions/${id}/vote`, { key: "c2", body: { vote: "no" }, headers: { "x-vercel-ip-country": "<script>" } });
+  await call("POST", `/api/questions/${id}/vote`, { key: "c3", body: { vote: "no" } });
+  assert.deepEqual(saved, ["GR", null, null]);
+  const page = await call("GET", `/api/questions/${id}`, { key: "c1" });
+  assert.equal(page.status, 200);
+  assert.equal(JSON.stringify(page.json).includes("country"), false);
+});

@@ -33,10 +33,12 @@ create table if not exists votes (
   name        text,
   reasoning   text check (char_length(reasoning) <= 500),
   ip_hash     text,
+  country     text check (country ~ '^[A-Z]{2}$'), -- from Vercel's x-vercel-ip-country; null before 2026-11-16 or when unknown
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
   primary key (question_id, voter)
 );
+alter table votes add column if not exists country text check (country ~ '^[A-Z]{2}$');
 create index if not exists votes_ip_idx on votes (ip_hash, updated_at);
 
 create table if not exists comments (
