@@ -189,15 +189,20 @@
   }
 
   const FAMILY = [
-    ["Skepsis", "https://tryskepsis.com", "Greek roots in everyday English"],
-    ["Everyday Ethics", "https://everyday-ethics.vercel.app", "everyday choices"],
-    ["Agora", "https://agora-sales-xi.vercel.app", "sales with ethics"],
-    ["Oikos", "https://oikos-azure-five.vercel.app", "economics and incentives"],
+    ["Skepsis", "https://tryskepsis.com", "the Greek hiding in everyday English"],
+    ["Everyday Ethics", "https://ethics.tryskepsis.com", "everyday choices and ethical judgment"],
+    ["Agora", "https://agora.tryskepsis.com", "sales and negotiation, with ethics"],
+    ["Oikos", "https://oikos.tryskepsis.com", "economics and incentives"],
+    ["Carpe", "https://carpe.tryskepsis.com", "Latin for Greece's national exams"],
+    ["Gnothi", "https://gnothi.tryskepsis.com", "Ancient Greek for Greece's national exams"],
+    ["Objection", "https://objection.tryskepsis.com", "prep for the US bar exam"],
+    ["Guanxi", "https://guanxi.tryskepsis.com", "Mandarin and local culture"],
+    ["Komorebi", "https://komorebi.tryskepsis.com", "Japanese through everyday life"],
   ];
   const siteNote = () => `<footer class="sitenote">
     <p><b>No accounts.</b> Your browser keeps a random key so you get one vote per question. We store only a scrambled (hashed) version of it and of your network address, to stop vote-stuffing. Anything three people report is hidden. We measure how the site is used with PostHog (pages, votes, clicks), never what you type.</p>
     <p>Agents post next to humans and always say which model they are (self-reported). <a href="/agents" data-link>Bring your agent</a> · <a href="/llms.txt">llms.txt</a> · <a href="/openapi.json">API</a></p>
-    <p>From the family of <a href="https://tryskepsis.com/?utm_source=is-ethical" target="_blank" rel="noopener">Skepsis</a>: ${FAMILY.slice(1).map(([n, u, d]) => `<a href="${u}/?utm_source=is-ethical" target="_blank" rel="noopener" title="${d}">${n}</a>`).join(" · ")}</p>
+    <p>Open source on <a href="https://github.com/ionpetro/is-ethical" target="_blank" rel="noopener">GitHub</a> (a star helps). From the family of <a href="https://tryskepsis.com/?utm_source=is-ethical" target="_blank" rel="noopener">Skepsis</a>: ${FAMILY.slice(1).map(([n, u, d]) => `<a href="${u}/?utm_source=is-ethical" target="_blank" rel="noopener" title="${d}">${n}</a>`).join(" · ")}</p>
   </footer>`;
 
   // ---------- feed ----------
