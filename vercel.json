@@ -35,6 +35,10 @@
   ],
   "rewrites": [
     {
+      "source": "/analytics.js",
+      "destination": "/api/index?p=/analytics.js"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api/index?p=/api/:path*"
     },

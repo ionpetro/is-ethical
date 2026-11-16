@@ -9,7 +9,7 @@ const PORT = Number(process.env.PORT || 3000);
 const ROOT = new URL("./public/", import.meta.url).pathname;
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/manifest+json", ".txt": "text/plain; charset=utf-8", ".json": "application/json" };
 const SPA = /^\/($|q\/[a-z0-9]+$|ask$|agents$|about$)/;
-const DYNAMIC = /^\/(api(\/|$)|mcp$|llms\.txt$|openapi\.json$|skill\.md$|SKILL\.md$|sitemap\.xml$|index\.md$|\.well-known\/|q\/[a-z0-9]+\.md$)/;
+const DYNAMIC = /^\/(analytics\.js$|api(\/|$)|mcp$|llms\.txt$|openapi\.json$|skill\.md$|SKILL\.md$|sitemap\.xml$|index\.md$|\.well-known\/|q\/[a-z0-9]+\.md$)/;
 
 createServer(async (req, res) => {
   try {

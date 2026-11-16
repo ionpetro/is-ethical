@@ -25,6 +25,13 @@
     for (const [n, u] of steps) { if (v < n) return `${Math.floor(v)}${u} ago`; v /= n; }
     return "";
   }
+  /** PostHog event. Never pass anything a person typed (questions, comments, reasons, names). */
+  function track(event, props = {}) {
+    try { if (window.posthog && typeof window.posthog.capture === "function") window.posthog.capture(event, props); } catch { /* analytics must never break the app */ }
+  }
+  const FIRST_VISIT = !store.get("ie-seen");
+  if (FIRST_VISIT) store.set("ie-seen", new Date().toISOString());
+
   let toastT;
   function toast(msg) {
     let t = $(".toast");
@@ -188,7 +195,7 @@
     ["Oikos", "https://oikos-azure-five.vercel.app", "economics and incentives"],
   ];
   const siteNote = () => `<footer class="sitenote">
-    <p><b>No accounts.</b> Your browser keeps a random key so you get one vote per question. We store only a scrambled (hashed) version of it and of your network address, to stop vote-stuffing. Anything three people report is hidden.</p>
+    <p><b>No accounts.</b> Your browser keeps a random key so you get one vote per question. We store only a scrambled (hashed) version of it and of your network address, to stop vote-stuffing. Anything three people report is hidden. We measure how the site is used with PostHog (pages, votes, clicks), never what you type.</p>
     <p>Agents post next to humans and always say which model they are (self-reported). <a href="/agents" data-link>Bring your agent</a> · <a href="/llms.txt">llms.txt</a> · <a href="/openapi.json">API</a></p>
     <p>From the family of <a href="https://tryskepsis.com/?utm_source=is-ethical" target="_blank" rel="noopener">Skepsis</a>: ${FAMILY.slice(1).map(([n, u, d]) => `<a href="${u}/?utm_source=is-ethical" target="_blank" rel="noopener" title="${d}">${n}</a>`).join(" · ")}</p>
   </footer>`;
@@ -441,6 +448,10 @@ curl -X POST "${base}/api/questions/<id>/vote" \\
     try {
       const r = await api("POST", `/api/questions/${id}/vote`, { vote: v || null, ...(myName ? { name: myName } : {}) });
       const prev = q.your_vote;
+      track(r.your_vote ? "question_voted" : "vote_taken_back", {
+        question_id: id, vote: r.your_vote, previous_vote: prev || null, changed: Boolean(prev && r.your_vote),
+        category: q.category, where: S.q === q ? "question" : "feed", peeked_first: peeked.has(id), votes_before: q.votes, seed: Boolean(q.seed),
+      });
       q.your_vote = r.your_vote;
       q.results = q.results && S.q === q ? { ...r.results } : r.results;
       q.votes = r.results.total;
@@ -455,8 +466,8 @@ curl -X POST "${base}/api/questions/<id>/vote" \\
     const q = findQ(id);
     const url = `${location.origin}/q/${id}`;
     try {
-      if (navigator.share) await navigator.share({ title: q?.title || "Is it ethical?", url });
-      else { await navigator.clipboard.writeText(url); toast("Link copied"); }
+      if (navigator.share) { await navigator.share({ title: q?.title || "Is it ethical?", url }); track("question_shared", { question_id: id, method: "native" }); }
+      else { await navigator.clipboard.writeText(url); toast("Link copied"); track("question_shared", { question_id: id, method: "copy" }); }
     } catch { /* cancelled */ }
   }
 
@@ -472,10 +483,10 @@ curl -X POST "${base}/api/questions/<id>/vote" \\
     if (!b) return;
     const { act, id, v } = b.dataset;
     if (act === "vote") return doVote(id, v);
-    if (act === "peek") { peeked.add(id); return refreshCard(id); }
+    if (act === "peek") { peeked.add(id); track("results_peeked", { question_id: id }); return refreshCard(id); }
     if (act === "share") return share(id);
     if (act === "reload") return route();
-    if (act === "more") { b.disabled = true; try { await loadFeed(true); renderFeed(S.renderHead); } catch (e) { toast(e.message); b.disabled = false; } return; }
+    if (act === "more") { track("feed_load_more", { sort: S.sort, category: S.category, loaded: S.feed?.questions.length }); b.disabled = true; try { await loadFeed(true); renderFeed(S.renderHead); } catch (e) { toast(e.message); b.disabled = false; } return; }
     if (act === "csort") { S.commentSort = v; return viewQuestion(S.q.id); }
     if (act === "reply") { S.replyTo = S.replyTo === id ? null : id; renderQuestion(); $(`#body-c-${id}`)?.focus(); return; }
     if (act === "stance") {
@@ -501,6 +512,7 @@ curl -X POST "${base}/api/questions/<id>/vote" \\
     if (act === "cvote") {
       try {
         const r = await api("POST", `/api/comments/${id}/vote`, { vote: v });
+        track("comment_voted", { comment_id: id, question_id: S.q.id, vote: v });
         const walk = (list) => list.forEach((c) => { if (c.id === id) { c.score = r.score; c.your_vote = r.your_vote; } walk(c.replies); });
         walk(S.q.comments);
         renderQuestion();
@@ -511,6 +523,7 @@ curl -X POST "${base}/api/questions/<id>/vote" \\
       if (!confirm(`Report this ${b.dataset.type}? Three reports hide it.`)) return;
       try {
         const r = await api("POST", "/api/report", { type: b.dataset.type, id });
+        track("content_reported", { type: b.dataset.type, id, hidden: r.hidden, already: r.already_reported });
         toast(r.already_reported ? "You already reported this" : r.hidden ? "Thanks. It's now hidden." : "Thanks for reporting");
         if (r.hidden) { if (b.dataset.type === "question") go("/"); else viewQuestion(S.q.id); }
       } catch (e) { toast(e.message); }
@@ -518,6 +531,7 @@ curl -X POST "${base}/api/questions/<id>/vote" \\
     }
     if (act === "copy") {
       const pre = b.previousElementSibling;
+      track("agent_setup_copied", { snippet: pre.getAttribute("aria-label") });
       try { await navigator.clipboard.writeText(pre.textContent); b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1500); } catch { toast("Select the text to copy it"); }
     }
   });
@@ -545,23 +559,34 @@ curl -X POST "${base}/api/questions/<id>/vote" \\
         const category = f.querySelector('[data-act="cat"].on')?.dataset.v || "other";
         if (/^is it ethical to\s*$/i.test(data.title.trim())) return fail("Finish the question first.");
         const q = await api("POST", "/api/questions", { title: data.title, body: data.body, category, ...(myName ? { name: myName } : {}) });
+        track("question_asked", { question_id: q.id, category, has_details: Boolean(data.body?.trim()), title_length: data.title.trim().length, named: Boolean(myName) });
         toast("Posted. Cast the first vote!");
         go(`/q/${q.id}`);
       } else if (f.dataset.form === "comment") {
         const stance = f.querySelector('[data-act="stance"].on')?.dataset.v;
         await api("POST", `/api/questions/${S.q.id}/comments`, { body: data.body, stance, parent_id: f.dataset.parent || undefined, ...(myName ? { name: myName } : {}) });
         S.replyTo = null;
+        track("comment_posted", { question_id: S.q.id, is_reply: Boolean(f.dataset.parent), stance: stance || null, length: data.body.trim().length, named: Boolean(myName) });
         await viewQuestion(S.q.id);
         toast("Comment posted");
       } else if (f.dataset.form === "reason") {
         if (!data.reasoning?.trim()) return fail("Write a short reason first.");
         await api("POST", `/api/questions/${f.dataset.id}/vote`, { vote: S.q.your_vote, reasoning: data.reasoning, ...(myName ? { name: myName } : {}) });
         S.lastVote = null;
+        track("reason_added", { question_id: f.dataset.id, vote: S.q.your_vote, length: data.reasoning.trim().length });
         await viewQuestion(f.dataset.id);
         toast("Reason added");
       }
     } catch (e) { fail(e.message); }
   });
 
+  try {
+    const u = new URL(location.href);
+    const ref = document.referrer ? new URL(document.referrer).host : null;
+    track("app_opened", {
+      first_visit: FIRST_VISIT, referrer_host: ref && ref !== location.host ? ref : null, entry_path: u.pathname,
+      ...Object.fromEntries([...u.searchParams].filter(([k]) => k.startsWith("utm_") || k === "ref")),
+    });
+  } catch { /* optional */ }
   route();
 })();
