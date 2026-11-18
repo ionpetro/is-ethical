@@ -159,8 +159,9 @@
       <a class="qtitle" href="/q/${q.id}" data-link>${esc(q.title)}</a>
       ${q.body ? `<p class="qbody">${esc(q.body)}</p>` : ""}
       ${voteBlock(q)}
+      ${reasonBox(q)}
       <div class="qfoot">
-        <a class="linkbtn" href="/q/${q.id}" data-link>${I.comment}${plural(q.comment_count, "comment")}</a>
+        <a class="linkbtn" href="/q/${q.id}" data-link>${I.comment}${q.comment_count ? plural(q.comment_count, "comment") : "Be the first to argue"}</a>
         <span class="grow"></span>
         <button class="linkbtn" data-act="share" data-id="${q.id}" aria-label="Share">${I.share}<span class="hide-sm">Share</span></button>
       </div>
@@ -224,7 +225,7 @@
       <section class="hero">${mascot()}<div class="bubble">Ask anything that starts with <b>“Is it ethical…?”</b> Vote first, then see how humans and AI agents answered.</div></section>
       ${S.stats ? `<section class="statrow">
         <div class="stat"><b>${S.stats.questions.toLocaleString()}</b><span>Questions</span></div>
-        <div class="stat"><b>${S.stats.votes.toLocaleString()}</b><span>Votes</span></div>
+        <div class="stat"><b>${(S.stats.votes - S.stats.agent_votes).toLocaleString()}</b><span>Human votes</span></div>
         <div class="stat agents"><b>${S.stats.votes ? Math.round((100 * S.stats.agent_votes) / S.stats.votes) : 0}%</b><span>From agents</span></div>
       </section>` : ""}
       <nav class="chips" aria-label="Sort">${SORTS.map(([id, label, icon]) => `<a class="chip ${S.sort === id ? "on" : ""}" href="${link(id, S.category)}" data-link>${I[icon]}${label}</a>`).join("")}</nav>
@@ -286,13 +287,16 @@
       </section>`, "feed");
   }
 
+  /** Shown right after a first vote, on the feed card and the question page: a one-line "why" and a nudge to share. */
   function reasonBox(q) {
     if (!q.your_vote || S.lastVote !== q.id) return "";
-    return `<form class="composer" data-form="reason" data-id="${q.id}">
-      <div class="field"><label for="reason">Why ${q.your_vote}? <span class="muted">(optional, shown publicly)</span></label>
-      <input class="input" id="reason" name="reasoning" maxlength="500" placeholder="One sentence is plenty"></div>
-      <div class="formrow"><small class="muted" style="font-weight:700">${nameLine()}</small><button class="btn small" type="submit">Add reason</button></div>
-    </form>`;
+    return `<form class="composer reasonbox" data-form="reason" data-id="${q.id}">
+      <div class="field"><label for="reason-${q.id}">Why ${q.your_vote}? <span class="muted">(optional, shown publicly)</span></label>
+      <div class="inrow"><input class="input" id="reason-${q.id}" name="reasoning" maxlength="500" placeholder="One sentence is plenty" autocomplete="off"><button class="btn small" type="submit">Add</button></div></div>
+      <small class="muted" style="font-weight:700">${nameLine()}</small>
+      <p class="err" hidden></p>
+    </form>
+    <div class="sharenudge"><span>What would your friends say?</span><button class="btn gold small" data-act="share" data-id="${q.id}" data-where="after_vote">${I.share}Ask them</button></div>`;
   }
 
   const nameLine = () => `Posting as <b>${esc(myName || "Anonymous")}</b> · <button type="button" class="linkbtn" style="font-size:12px;padding:0" data-act="name">change</button>`;
@@ -431,12 +435,13 @@ curl -X POST "${base}/api/questions/<id>/vote" \\
   window.addEventListener("popstate", route);
 
   // ---------- actions ----------
+  const onQuestionPage = () => location.pathname.startsWith("/q/");
   function findQ(id) {
     if (S.q?.id === id) return S.q;
     return S.feed?.questions.find((x) => x.id === id);
   }
   function refreshCard(id) {
-    if (location.pathname.startsWith("/q/")) {
+    if (onQuestionPage()) {
       if (!$(".reasons") && S.q.reasons?.length) { renderQuestion(); return; }
       const vb = $("#voteblock");
       if (vb) { vb.innerHTML = voteBlock(S.q, { big: true }) + reasonBox(S.q); vb.classList.add("pop"); setTimeout(() => vb.classList.remove("pop"), 300); }
@@ -452,7 +457,7 @@ curl -X POST "${base}/api/questions/<id>/vote" \\
     if (!q) return;
     try {
       const r = await api("POST", `/api/questions/${id}/vote`, { vote: v || null, ...(myName ? { name: myName } : {}) });
-      const prev = q.your_vote;
+      const prev = q.your_vote, prevOpen = S.lastVote;
       track(r.your_vote ? "question_voted" : "vote_taken_back", {
         question_id: id, vote: r.your_vote, previous_vote: prev || null, changed: Boolean(prev && r.your_vote),
         category: q.category, where: S.q === q ? "question" : "feed", peeked_first: peeked.has(id), votes_before: q.votes, seed: Boolean(q.seed),
@@ -464,15 +469,17 @@ curl -X POST "${base}/api/questions/<id>/vote" \\
       if (!r.your_vote) S.lastVote = null;
       if (navigator.vibrate) try { navigator.vibrate(12); } catch { /* optional */ }
       refreshCard(id);
+      if (prevOpen && prevOpen !== S.lastVote && !onQuestionPage()) refreshCard(prevOpen);
     } catch (e) { toast(e.message); }
   }
 
-  async function share(id) {
+  async function share(id, where) {
+    where = where || (onQuestionPage() ? "question" : "feed");
     const q = findQ(id);
     const url = `${location.origin}/q/${id}`;
     try {
-      if (navigator.share) { await navigator.share({ title: q?.title || "Is it ethical?", url }); track("question_shared", { question_id: id, method: "native" }); }
-      else { await navigator.clipboard.writeText(url); toast("Link copied"); track("question_shared", { question_id: id, method: "copy" }); }
+      if (navigator.share) { await navigator.share({ title: q?.title || "Is it ethical?", url }); track("question_shared", { question_id: id, method: "native", where }); }
+      else { await navigator.clipboard.writeText(url); toast("Link copied"); track("question_shared", { question_id: id, method: "copy", where }); }
     } catch { /* cancelled */ }
   }
 
@@ -489,7 +496,7 @@ curl -X POST "${base}/api/questions/<id>/vote" \\
     const { act, id, v } = b.dataset;
     if (act === "vote") return doVote(id, v);
     if (act === "peek") { peeked.add(id); track("results_peeked", { question_id: id }); return refreshCard(id); }
-    if (act === "share") return share(id);
+    if (act === "share") return share(id, b.dataset.where);
     if (act === "reload") return route();
     if (act === "more") { track("feed_load_more", { sort: S.sort, category: S.category, loaded: S.feed?.questions.length }); b.disabled = true; try { await loadFeed(true); renderFeed(S.renderHead); } catch (e) { toast(e.message); b.disabled = false; } return; }
     if (act === "csort") { S.commentSort = v; return viewQuestion(S.q.id); }
@@ -576,10 +583,13 @@ curl -X POST "${base}/api/questions/<id>/vote" \\
         toast("Comment posted");
       } else if (f.dataset.form === "reason") {
         if (!data.reasoning?.trim()) return fail("Write a short reason first.");
-        await api("POST", `/api/questions/${f.dataset.id}/vote`, { vote: S.q.your_vote, reasoning: data.reasoning, ...(myName ? { name: myName } : {}) });
+        const id = f.dataset.id, onQ = onQuestionPage();
+        const q = onQ ? S.q : S.feed?.questions.find((x) => x.id === id);
+        if (!q?.your_vote) return fail("Vote first.");
+        await api("POST", `/api/questions/${id}/vote`, { vote: q.your_vote, reasoning: data.reasoning, ...(myName ? { name: myName } : {}) });
         S.lastVote = null;
-        track("reason_added", { question_id: f.dataset.id, vote: S.q.your_vote, length: data.reasoning.trim().length });
-        await viewQuestion(f.dataset.id);
+        track("reason_added", { question_id: id, vote: q.your_vote, length: data.reasoning.trim().length, where: onQ ? "question" : "feed" });
+        if (onQ) await viewQuestion(id); else refreshCard(id);
         toast("Reason added");
       }
     } catch (e) { fail(e.message); }

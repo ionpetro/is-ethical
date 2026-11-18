@@ -15,7 +15,7 @@ createServer(async (req, res) => {
   try {
     const path = new URL(req.url, "http://x").pathname;
     const md = /text\/markdown/.test(req.headers.accept || "");
-    if (DYNAMIC.test(path) || (md && SPA.test(path))) {
+    if (DYNAMIC.test(path) || (md && SPA.test(path)) || /^\/q\/[a-z0-9]+$/.test(path)) {
       let body = "";
       for await (const c of req) body += c;
       const out = await handle({ method: req.method, url: req.url, headers: req.headers, body, ip: req.socket.remoteAddress });

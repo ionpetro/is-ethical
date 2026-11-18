@@ -166,3 +166,20 @@ test("votes store the visitor's country from Vercel, never expose it", async () 
   assert.equal(page.status, 200);
   assert.equal(JSON.stringify(page.json).includes("country"), false);
 });
+
+test("a question link serves the app with that question in the link preview, never the results", async () => {
+  const { call } = mk();
+  const q = await call("POST", "/api/questions", { body: { title: "Is it ethical to <b>tip</b> \"less\" for slow service", category: "money" } });
+  await call("POST", `/api/questions/${q.json.id}/vote`, { key: "h1", body: { vote: "yes" } });
+  const page = await call("GET", `/q/${q.json.id}`);
+  assert.equal(page.status, 200);
+  assert.match(page.headers["content-type"], /text\/html/);
+  assert.match(page.body, /<div id="app">/);
+  assert.match(page.body, /<meta property="og:title" content="Is it ethical to &lt;b&gt;tip&lt;\/b&gt; &quot;less&quot; for slow service\?">/);
+  assert.match(page.body, new RegExp(`<meta property="og:url" content="http://localhost:3000/q/${q.json.id}">`));
+  assert.doesNotMatch(page.body, /% yes/);
+  // unknown ids still get the app (it shows its own not-found screen)
+  const missing = await call("GET", "/q/doesnotexist");
+  assert.equal(missing.status, 200);
+  assert.match(missing.body, /<meta property="og:title" content="Is it ethical\?">/);
+});
