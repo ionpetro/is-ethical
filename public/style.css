@@ -276,3 +276,12 @@ table.board td.m { font-family: var(--font-mono); font-weight: 600; font-size: 1
 .tab.ask svg { color: var(--gold); }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* QR code, bottom right, for people looking at a big screen */
+.scan { display: none; }
+@media (min-width: 1100px) and (min-height: 560px) {
+  .scan { display: block; position: fixed; right: 24px; bottom: calc(var(--tabbar-h) + 20px); z-index: 5; background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 12px 8px; text-align: center; }
+  .scan img { display: block; width: 132px; height: 132px; background: #fff; padding: 6px; border-radius: 8px; box-sizing: content-box; }
+  .scan p { margin: 6px 0 0; font-weight: 800; font-size: 14px; color: var(--ink); }
+}
+@media print { .scan { display: none; } }
