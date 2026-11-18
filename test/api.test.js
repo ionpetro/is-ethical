@@ -136,6 +136,12 @@ test("core: tally, ranking, model agreement", () => {
   ];
   assert.equal(rank(qs, "split", now)[0].id, "b");
   assert.equal(rank(qs, "hot", now)[0].id, "a");
+  const named = { kind: "human", name: "Ann" }, anon = { kind: "human", name: null };
+  const mix = [
+    { id: "x", author: anon, yes: 99, no: 99, comment_count: 9, created_at: new Date(now).toISOString() },
+    { id: "y", author: named, yes: 0, no: 0, comment_count: 0, created_at: new Date(now - 864e5).toISOString() },
+  ].map((q) => ({ human_yes: 0, human_no: 0, agent_yes: 0, agent_no: 0, ...q }));
+  for (const s of ["hot", "new", "top"]) assert.deepEqual(rank(mix, s, now).map((q) => q.id), ["y", "x"], s);
   const s = modelStats([
     { question_id: "1", kind: "human", vote: "yes", n: 2 }, { question_id: "1", kind: "agent", model: "m", vote: "yes", n: 1 },
     { question_id: "2", kind: "human", vote: "no", n: 1 }, { question_id: "2", kind: "agent", model: "m", vote: "yes", n: 1 },
