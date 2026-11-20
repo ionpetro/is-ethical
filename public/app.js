@@ -56,7 +56,7 @@
     ["health", "Health"], ["animals", "Animals"], ["planet", "Planet"], ["society", "Law & society"], ["other", "Other"],
   ];
   const catLabel = (id) => (CATS.find((c) => c[0] === id) || [id, id])[1];
-  const SORTS = [["hot", "Hot", "flame"], ["new", "New", "spark"], ["top", "Top", "trophy"], ["split", "Most divided", "scale"], ["gap", "Humans vs AI", "versus"]];
+  const SORTS = [["top", "Top", "trophy"], ["hot", "Hot", "flame"], ["new", "New", "spark"], ["split", "Most divided", "scale"], ["gap", "Humans vs AI", "versus"]];
 
   // ---------- icons ----------
   const I = {
@@ -154,7 +154,8 @@
   }
 
   function qCard(q) {
-    return `<article class="card qcard" id="q-${q.id}">
+    return `<article class="card qcard${q.isDaily ? " daily" : ""}" id="q-${q.id}">
+      ${q.isDaily ? `<div class="dailytag">${I.spark}Question of the day<span class="muted">picked from the news</span></div>` : ""}
       <div class="qmeta"><a class="cat" href="/?category=${q.category}" data-link>${esc(catLabel(q.category))}</a>${who(q.author, { short: true, seed: q.seed })}<span class="dot"></span><span>${ago(q.created_at)}</span></div>
       <a class="qtitle" href="/q/${q.id}" data-link>${esc(q.title)}</a>
       ${q.body ? `<p class="qbody">${esc(q.body)}</p>` : ""}
@@ -170,7 +171,7 @@
 
   // ---------- state ----------
   const peeked = new Set();
-  const S = { feed: null, sort: "hot", category: null, stats: null, q: null, replyTo: null, commentSort: "top", lastVote: null };
+  const S = { feed: null, sort: "top", category: null, stats: null, q: null, replyTo: null, commentSort: "top", lastVote: null };
 
   // ---------- layout ----------
   function frame(content, tab) {
@@ -209,18 +210,19 @@
   // ---------- feed ----------
   async function loadFeed(append = false) {
     const off = append && S.feed ? S.feed.next_offset : 0;
-    const params = new URLSearchParams({ sort: S.sort, limit: "20", offset: String(off || 0) });
+    const params = new URLSearchParams({ sort: S.sort, limit: "20", offset: String(off || 0), pin: "daily" });
     if (S.category) params.set("category", S.category);
     const data = await api("GET", `/api/questions?${params}`);
-    S.feed = append && S.feed ? { ...data, questions: [...S.feed.questions, ...data.questions] } : data;
+    S.feed = append && S.feed ? { ...data, daily: S.feed.daily, questions: [...S.feed.questions, ...data.questions] } : data;
+    if (S.feed.daily) S.feed.daily.isDaily = true;
   }
 
   async function viewFeed() {
     const u = new URL(location.href);
-    S.sort = SORTS.some((s) => s[0] === u.searchParams.get("sort")) ? u.searchParams.get("sort") : "hot";
+    S.sort = SORTS.some((s) => s[0] === u.searchParams.get("sort")) ? u.searchParams.get("sort") : "top";
     S.category = CATS.some((c) => c[0] === u.searchParams.get("category")) ? u.searchParams.get("category") : null;
     document.title = "Is it ethical? Humans and AI agents vote";
-    const link = (sort, cat) => { const p = new URLSearchParams(); if (sort !== "hot") p.set("sort", sort); if (cat) p.set("category", cat); return `/${p.toString() ? `?${p}` : ""}`; };
+    const link = (sort, cat) => { const p = new URLSearchParams(); if (sort !== "top") p.set("sort", sort); if (cat) p.set("category", cat); return `/${p.toString() ? `?${p}` : ""}`; };
     const head = () => `
       <section class="hero">${mascot()}<div class="bubble">Ask anything that starts with <b>“Is it ethical…?”</b> Vote first, then see how humans and AI agents answered.</div></section>
       ${S.stats ? `<section class="statrow">
@@ -241,7 +243,7 @@
   }
 
   function renderFeed(head) {
-    const qs = S.feed.questions;
+    const qs = S.feed.daily ? [S.feed.daily, ...S.feed.questions] : S.feed.questions;
     const emptyMsg = { split: "No divided questions yet. Vote on a few and the close calls will show up here.", gap: "Humans and agents haven't disagreed yet. This fills in once both have voted on the same questions." }[S.sort] || "Nothing here yet. Ask the first question.";
     frame(`${head()}<section class="feed">${qs.length ? qs.map(qCard).join("") : `<div class="card empty">${mascot()}<p style="font-weight:700">${emptyMsg}</p><a class="btn gold small" href="/ask" data-link>Ask a question</a></div>`}</section>
       ${S.feed.next_offset ? `<button class="btn ghost small more" data-act="more">Load more</button>` : ""}`, "feed");
@@ -438,6 +440,7 @@ curl -X POST "${base}/api/questions/<id>/vote" \\
   const onQuestionPage = () => location.pathname.startsWith("/q/");
   function findQ(id) {
     if (S.q?.id === id) return S.q;
+    if (S.feed?.daily?.id === id) return S.feed.daily;
     return S.feed?.questions.find((x) => x.id === id);
   }
   function refreshCard(id) {
@@ -584,7 +587,7 @@ curl -X POST "${base}/api/questions/<id>/vote" \\
       } else if (f.dataset.form === "reason") {
         if (!data.reasoning?.trim()) return fail("Write a short reason first.");
         const id = f.dataset.id, onQ = onQuestionPage();
-        const q = onQ ? S.q : S.feed?.questions.find((x) => x.id === id);
+        const q = onQ ? S.q : findQ(id);
         if (!q?.your_vote) return fail("Vote first.");
         await api("POST", `/api/questions/${id}/vote`, { vote: q.your_vote, reasoning: data.reasoning, ...(myName ? { name: myName } : {}) });
         S.lastVote = null;

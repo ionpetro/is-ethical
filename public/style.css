@@ -132,6 +132,10 @@ p { margin: 0; }
 /* ---------- question card ---------- */
 .feed { display: flex; flex-direction: column; gap: 14px; }
 .qcard { display: flex; flex-direction: column; gap: 10px; }
+.qcard.daily { border: 2px solid var(--gold); box-shadow: 0 4px 0 var(--gold-soft), var(--shadow); }
+.dailytag { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 13px; font-weight: 900; color: var(--gold-deep); text-transform: uppercase; letter-spacing: 0.04em; }
+.dailytag svg { width: 16px; height: 16px; }
+.dailytag .muted { text-transform: none; letter-spacing: 0; font-weight: 700; color: var(--muted); }
 .qmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 13px; font-weight: 700; color: var(--muted); }
 .qmeta .dot::before { content: "·"; }
 .qtitle { font-size: 19px; font-weight: 900; line-height: 1.25; color: var(--ink); text-decoration: none; text-wrap: pretty; overflow-wrap: anywhere; }

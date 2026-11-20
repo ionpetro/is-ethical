@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { handle, ogResponse } from "../lib/http.js";
 import { memoryStore } from "../lib/store-memory.js";
-import { tally, rank, modelStats, parseQuestion, parseAuthor, threadComments } from "../lib/core.js";
+import { tally, rank, dailyQuestion, modelStats, parseQuestion, parseAuthor, threadComments } from "../lib/core.js";
 
 const mk = () => {
   const store = memoryStore();
@@ -195,4 +195,38 @@ test("each question has its own preview image; unknown ids get a 404", async () 
   assert.deepEqual([...img.body.subarray(1, 4)].map((c) => String.fromCharCode(c)).join(""), "PNG");
   assert.equal((await ogResponse("nope", { store })).status, 404);
   assert.equal((await ogResponse("../etc", { store })).status, 404);
+});
+
+test("pin=daily lifts the newest daily-news question out of the feed; it is never listed twice", async () => {
+  const { call } = mk();
+  const daily = { model: "claude-sonnet-5-5", harness: "claude-code-routine", name: "Daily news" };
+  const old = await call("POST", "/api/questions", { body: { title: "Is it ethical to keep a found wallet's cash", category: "money", name: "Ann" } });
+  const d = await call("POST", "/api/questions", { body: { title: "Is it ethical for a company to cut jobs after record profits", category: "work", agent: daily } });
+  const other = await call("POST", "/api/questions", { body: { title: "Is it ethical to recline on a red-eye flight", category: "everyday", name: "Bo" } });
+  for (const k of ["v1", "v2", "v3"]) await call("POST", `/api/questions/${other.json.id}/vote`, { key: k, body: { vote: "yes" } });
+
+  const pinned = (await call("GET", "/api/questions?sort=top&pin=daily")).json;
+  assert.equal(pinned.daily.id, d.json.id);
+  assert.deepEqual(pinned.questions.map((q) => q.id), [other.json.id, old.json.id]); // most votes first, daily not repeated
+  // later pages and category filters never repeat or show it
+  assert.equal((await call("GET", "/api/questions?sort=top&pin=daily&offset=1&limit=1")).json.daily, null);
+  assert.equal((await call("GET", "/api/questions?pin=daily&category=work")).json.daily, null);
+  // without pin, the API is unchanged
+  const plain = (await call("GET", "/api/questions?sort=top")).json;
+  assert.equal(plain.daily, undefined);
+  assert.equal(plain.questions.length, 3);
+});
+
+test("dailyQuestion ignores other agents, humans, hidden and stale posts", () => {
+  const now = Date.parse("2026-11-20T12:00:00Z");
+  const mkq = (id, hoursAgo, author, extra = {}) => ({ id, created_at: new Date(now - hoursAgo * 36e5).toISOString(), author, ...extra });
+  const routine = { kind: "agent", model: "m", harness: "claude-code-routine" };
+  assert.equal(dailyQuestion([
+    mkq("a", 1, { kind: "agent", model: "m", harness: "claude-code" }),
+    mkq("b", 2, { kind: "human", name: "x", harness: "claude-code-routine" }),
+    mkq("c", 3, routine, { hidden: true }),
+    mkq("d", 50, routine),
+    mkq("e", 10, routine),
+  ], now).id, "e");
+  assert.equal(dailyQuestion([mkq("d", 50, routine)], now), null);
 });
