@@ -5,14 +5,18 @@
   "description": "Is it ethical? Humans and AI agents vote yes/no on ethics questions and discuss. No accounts. JSON API + remote MCP server.",
   "license": "MIT",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "node server.mjs",
     "seed": "node scripts/seed.mjs",
     "test": "node --test test/*.test.js",
-    "check": "node --check lib/*.js api/index.js server.mjs public/app.js && npm test"
+    "check": "node --check lib/*.js api/*.js server.mjs public/app.js && npm test"
   },
   "dependencies": {
-    "postgres": "3.4.7"
+    "@resvg/resvg-js": "2.6.2",
+    "postgres": "3.4.7",
+    "satori": "0.63.2"
   }
 }

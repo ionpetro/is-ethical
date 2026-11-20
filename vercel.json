@@ -9,6 +9,10 @@
     "api/index.js": {
       "maxDuration": 15,
       "includeFiles": "public/index.html"
+    },
+    "api/og.js": {
+      "maxDuration": 15,
+      "includeFiles": "fonts/**"
     }
   },
   "headers": [
@@ -78,6 +82,10 @@
     {
       "source": "/.well-known/mcp/server-card.json",
       "destination": "/api/index?p=/.well-known/mcp/server-card.json"
+    },
+    {
+      "source": "/q/:id/og.png",
+      "destination": "/api/og?id=:id"
     },
     {
       "source": "/q/:id.md",

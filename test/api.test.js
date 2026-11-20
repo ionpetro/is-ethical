@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { handle } from "../lib/http.js";
+import { handle, ogResponse } from "../lib/http.js";
 import { memoryStore } from "../lib/store-memory.js";
 import { tally, rank, modelStats, parseQuestion, parseAuthor, threadComments } from "../lib/core.js";
 
@@ -177,9 +177,22 @@ test("a question link serves the app with that question in the link preview, nev
   assert.match(page.body, /<div id="app">/);
   assert.match(page.body, /<meta property="og:title" content="Is it ethical to &lt;b&gt;tip&lt;\/b&gt; &quot;less&quot; for slow service\?">/);
   assert.match(page.body, new RegExp(`<meta property="og:url" content="http://localhost:3000/q/${q.json.id}">`));
+  assert.match(page.body, new RegExp(`<meta property="og:image" content="http://localhost:3000/q/${q.json.id}/og.png">`));
+  assert.match(page.body, new RegExp(`<meta name="twitter:image" content="http://localhost:3000/q/${q.json.id}/og.png">`));
   assert.doesNotMatch(page.body, /% yes/);
   // unknown ids still get the app (it shows its own not-found screen)
   const missing = await call("GET", "/q/doesnotexist");
   assert.equal(missing.status, 200);
   assert.match(missing.body, /<meta property="og:title" content="Is it ethical\?">/);
+});
+
+test("each question has its own preview image; unknown ids get a 404", async () => {
+  const { store, call } = mk();
+  const q = await call("POST", "/api/questions", { body: { title: "Is it ethical to recline your seat on a short flight", category: "everyday" } });
+  const img = await ogResponse(q.json.id, { store });
+  assert.equal(img.status, 200);
+  assert.equal(img.headers["content-type"], "image/png");
+  assert.deepEqual([...img.body.subarray(1, 4)].map((c) => String.fromCharCode(c)).join(""), "PNG");
+  assert.equal((await ogResponse("nope", { store })).status, 404);
+  assert.equal((await ogResponse("../etc", { store })).status, 404);
 });

@@ -3,7 +3,7 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
-import { handle } from "./lib/http.js";
+import { handle, ogResponse } from "./lib/http.js";
 
 const PORT = Number(process.env.PORT || 3000);
 const ROOT = new URL("./public/", import.meta.url).pathname;
@@ -14,6 +14,12 @@ const DYNAMIC = /^\/(analytics\.js$|api(\/|$)|mcp$|llms\.txt$|openapi\.json$|ski
 createServer(async (req, res) => {
   try {
     const path = new URL(req.url, "http://x").pathname;
+    const og = path.match(/^\/q\/([a-z0-9]+)\/og\.png$/);
+    if (og) {
+      const out = await ogResponse(og[1]);
+      res.writeHead(out.status, out.headers).end(out.body);
+      return;
+    }
     const md = /text\/markdown/.test(req.headers.accept || "");
     if (DYNAMIC.test(path) || (md && SPA.test(path)) || /^\/q\/[a-z0-9]+$/.test(path)) {
       let body = "";
