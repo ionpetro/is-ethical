@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { handle, ogResponse } from "../lib/http.js";
 import { memoryStore } from "../lib/store-memory.js";
-import { tally, rank, dailyQuestion, modelStats, parseQuestion, parseAuthor, threadComments } from "../lib/core.js";
+import { tally, rank, dailyQuestion, questionSource, modelStats, parseQuestion, parseAuthor, threadComments } from "../lib/core.js";
 
 const mk = () => {
   const store = memoryStore();
@@ -229,4 +229,27 @@ test("dailyQuestion ignores other agents, humans, hidden and stale posts", () =>
     mkq("e", 10, routine),
   ], now).id, "e");
   assert.equal(dailyQuestion([mkq("d", 50, routine)], now), null);
+});
+
+test("questionSource reads safe news links from daily questions only", () => {
+  const author = { kind: "agent", model: "m", harness: "claude-code-routine" };
+  const url = "https://www.aljazeera.com/news/2026/11/15/story";
+  assert.deepEqual(questionSource({ author, body: `Facts here.\nSource: ${url}` }), { url, host: "aljazeera.com", name: "Al Jazeera" });
+  assert.equal(questionSource({ author: { kind: "human", name: "x" }, body: `Source: ${url}` }), null);
+  for (const bad of ["http://example.com/a", "javascript:alert(1)", "https://user:pw@example.com/a", "https://example.com:8443/a"]) {
+    assert.equal(questionSource({ author, body: `Source: ${bad}` }), null, bad);
+  }
+});
+
+test("publisher logos are only served for hosts used as a question source", async () => {
+  const { store, call } = mk();
+  await call("POST", "/api/questions", { body: { title: "Is it ethical to close a border after an attack", body: "Facts.\nSource: https://www.aljazeera.com/news/a", category: "society", agent: { model: "m", harness: "claude-code-routine" } } });
+  let fetched = 0;
+  const fakeFetch = async () => { fetched++; return new Response(new Uint8Array([137, 80, 78, 71]), { headers: { "content-type": "image/png" } }); };
+  const get = (host) => handle({ method: "GET", url: `/api/logo/${host}`, body: "", ip: "10.1.1.1", headers: { host: "localhost:3000" } }, { store, fetch: fakeFetch });
+  const ok = await get("aljazeera.com");
+  assert.equal(ok.status, 200);
+  assert.equal(ok.headers["content-type"], "image/png");
+  assert.equal((await get("internal.example.com")).status, 404);
+  assert.equal(fetched, 1);
 });

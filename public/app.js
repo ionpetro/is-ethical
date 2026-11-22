@@ -153,12 +153,36 @@
         : `<span>You haven't voted</span><span><button class="linkbtn" data-act="vote" data-id="${q.id}" data-v="yes">Vote yes</button><button class="linkbtn" data-act="vote" data-id="${q.id}" data-v="no">Vote no</button></span>`}</div>`;
   }
 
+  // ---------- news source ----------
+  /** The question text without its "Source:" line, which is shown as a publisher chip instead. */
+  const bodyText = (q) => (q.source ? String(q.body || "").replace(/\s*Source:\s*https:\/\/\S+\s*$/i, "").trim() : q.body);
+  const sourceLogo = (s) => `<span class="srclogo" aria-hidden="true">${esc(s.name[0].toUpperCase())}<img src="/api/logo/${encodeURIComponent(s.host)}" alt="" loading="lazy" onerror="this.remove()"></span>`;
+  const sourceChip = (q) => (q.source ? `<button class="sourcechip" data-act="source" data-id="${q.id}" aria-haspopup="dialog">${sourceLogo(q.source)}<span>Source: <b>${esc(q.source.name)}</b></span></button>` : "");
+
+  function openSource(q) {
+    const s = q.source;
+    if (!s) return;
+    document.querySelector("#srcdlg")?.remove();
+    document.body.insertAdjacentHTML("beforeend", `<dialog id="srcdlg" class="srcdlg" aria-labelledby="srcdlg-name">
+      <div class="srchead">${sourceLogo(s)}<div><h2 id="srcdlg-name">${esc(s.name)}</h2><span class="muted">${esc(s.host)}</span></div></div>
+      <p>This question is based on a news story. Read the original article on <b>${esc(s.host)}</b>. It opens in a new tab.</p>
+      <a class="btn gold" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" data-act="source-visit" data-id="${q.id}">Read on ${esc(s.name)}</a>
+      <button class="btn ghost small" data-act="source-close">Back to the question</button>
+    </dialog>`);
+    const d = document.querySelector("#srcdlg");
+    d.addEventListener("close", () => d.remove());
+    d.addEventListener("click", (e) => { if (e.target === d) d.close(); });
+    d.showModal();
+    track("source_opened", { question_id: q.id, source_host: s.host });
+  }
+
   function qCard(q) {
     return `<article class="card qcard${q.isDaily ? " daily" : ""}" id="q-${q.id}">
       ${q.isDaily ? `<div class="dailytag">${I.spark}Question of the day<span class="muted">picked from the news</span></div>` : ""}
       <div class="qmeta"><a class="cat" href="/?category=${q.category}" data-link>${esc(catLabel(q.category))}</a>${who(q.author, { short: true, seed: q.seed })}<span class="dot"></span><span>${ago(q.created_at)}</span></div>
       <a class="qtitle" href="/q/${q.id}" data-link>${esc(q.title)}</a>
-      ${q.body ? `<p class="qbody">${esc(q.body)}</p>` : ""}
+      ${bodyText(q) ? `<p class="qbody">${esc(bodyText(q))}</p>` : ""}
+      ${sourceChip(q)}
       ${voteBlock(q)}
       ${reasonBox(q)}
       <div class="qfoot">
@@ -272,7 +296,8 @@
       <article class="card qcard" id="q-${q.id}">
         <div class="qmeta"><a class="cat" href="/?category=${q.category}" data-link>${esc(catLabel(q.category))}</a>${who(q.author, { seed: q.seed })}<span class="dot"></span><span>${ago(q.created_at)}</span></div>
         <h1>${esc(q.title)}</h1>
-        ${q.body ? `<p class="qfull">${esc(q.body)}</p>` : ""}
+        ${bodyText(q) ? `<p class="qfull">${esc(bodyText(q))}</p>` : ""}
+        ${sourceChip(q)}
         <div id="voteblock" style="display:flex;flex-direction:column;gap:10px">${voteBlock(q, { big: true })}${reasonBox(q)}</div>
         <div class="qfoot"><span class="grow"></span>
           <button class="linkbtn" data-act="share" data-id="${q.id}">${I.share}Share</button>
@@ -500,6 +525,9 @@ curl -X POST "${base}/api/questions/<id>/vote" \\
     if (act === "vote") return doVote(id, v);
     if (act === "peek") { peeked.add(id); track("results_peeked", { question_id: id }); return refreshCard(id); }
     if (act === "share") return share(id, b.dataset.where);
+    if (act === "source") return openSource(findQ(id));
+    if (act === "source-close") return document.querySelector("#srcdlg")?.close();
+    if (act === "source-visit") { track("source_visited", { question_id: id, source_host: findQ(id)?.source?.host }); document.querySelector("#srcdlg")?.close(); return; }
     if (act === "reload") return route();
     if (act === "more") { track("feed_load_more", { sort: S.sort, category: S.category, loaded: S.feed?.questions.length }); b.disabled = true; try { await loadFeed(true); renderFeed(S.renderHead); } catch (e) { toast(e.message); b.disabled = false; } return; }
     if (act === "csort") { S.commentSort = v; return viewQuestion(S.q.id); }

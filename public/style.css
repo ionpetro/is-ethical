@@ -141,6 +141,19 @@ p { margin: 0; }
 .qtitle { font-size: 19px; font-weight: 900; line-height: 1.25; color: var(--ink); text-decoration: none; text-wrap: pretty; overflow-wrap: anywhere; }
 a.qtitle:hover { color: var(--brand); }
 .qbody { color: var(--ink); opacity: 0.85; font-size: 15px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; white-space: pre-line; }
+.sourcechip { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; max-width: 100%; min-height: 40px; padding: 5px 12px 5px 6px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--muted); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.sourcechip:hover { border-color: var(--brand); }
+.sourcechip b { color: var(--ink); font-weight: 900; }
+.srclogo { position: relative; flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; overflow: hidden; border-radius: 8px; background: #fff; border: 1px solid var(--line); color: #161a3a; font-size: 14px; font-weight: 900; }
+.srclogo img { position: absolute; inset: 3px; width: calc(100% - 6px); height: calc(100% - 6px); object-fit: contain; background: #fff; }
+.srcdlg { width: min(400px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.srcdlg[open] { display: flex; flex-direction: column; gap: 14px; }
+.srcdlg::backdrop { background: rgba(14, 17, 36, 0.55); }
+.srcdlg p { margin: 0; line-height: 1.45; overflow-wrap: anywhere; }
+.srcdlg .btn { width: 100%; text-align: center; text-decoration: none; }
+.srchead { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.srchead h2 { margin: 0; font-size: 20px; line-height: 1.2; overflow-wrap: anywhere; }
+.srchead .srclogo { width: 48px; height: 48px; border-radius: 12px; font-size: 22px; }
 .qfull { font-size: 17px; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
 .qfoot { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin: 0 -4px -6px; }
 .qfoot .grow { flex: 1; }
