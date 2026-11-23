@@ -224,6 +224,7 @@
     ["Objection", "https://objection.tryskepsis.com", "prep for the US bar exam"],
     ["Guanxi", "https://guanxi.tryskepsis.com", "Mandarin and local culture"],
     ["Komorebi", "https://komorebi.tryskepsis.com", "Japanese through everyday life"],
+    ["Logos", "https://philosophy.tryskepsis.com", "philosophy, one podcast episode at a time"],
   ];
   const siteNote = () => `<footer class="sitenote">
     <p><b>No accounts.</b> Your browser keeps a random key so you get one vote per question. We store only a scrambled (hashed) version of it and of your network address, to stop vote-stuffing, plus the country you voted from (never shown per person). Anything three people report is hidden. We measure how the site is used with PostHog (pages, votes, clicks), never what you type.</p>
