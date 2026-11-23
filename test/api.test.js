@@ -180,10 +180,31 @@ test("a question link serves the app with that question in the link preview, nev
   assert.match(page.body, new RegExp(`<meta property="og:image" content="http://localhost:3000/q/${q.json.id}/og.png">`));
   assert.match(page.body, new RegExp(`<meta name="twitter:image" content="http://localhost:3000/q/${q.json.id}/og.png">`));
   assert.doesNotMatch(page.body, /% yes/);
-  // unknown ids still get the app (it shows its own not-found screen)
+  // unknown ids still get the app (it shows its own not-found screen), but search engines see a real 404
   const missing = await call("GET", "/q/doesnotexist");
-  assert.equal(missing.status, 200);
+  assert.equal(missing.status, 404);
+  assert.match(missing.body, /<div id="app">/);
+  assert.match(missing.body, /<meta name="robots" content="noindex">/);
   assert.match(missing.body, /<meta property="og:title" content="Is it ethical\?">/);
+});
+
+test("search engines get each question as real HTML, without the results", async () => {
+  const { call } = mk();
+  const a = await call("POST", "/api/questions", { body: { title: "Is it ethical to <b>skip</b> a queue", body: "A short </script><img src=x> story.", category: "everyday" } });
+  const b = await call("POST", "/api/questions", { body: { title: "Is it ethical to keep found money", category: "money" } });
+  await call("POST", `/api/questions/${a.json.id}/vote`, { key: "h1", body: { vote: "yes" } });
+  const page = await call("GET", `/q/${a.json.id}`);
+  assert.match(page.body, /<h1>Is it ethical to &lt;b&gt;skip&lt;\/b&gt; a queue\?<\/h1>/);
+  assert.match(page.body, /<p>A short &lt;\/script&gt;&lt;img src=x&gt; story\.<\/p>/);
+  assert.match(page.body, new RegExp(`<link rel="canonical" href="http://localhost:3000/q/${a.json.id}">`));
+  assert.match(page.body, new RegExp(`<a href="/q/${b.json.id}">Is it ethical to keep found money\\?</a>`));
+  const ld = page.body.match(/<script type="application\/ld\+json">(.*?)<\/script>/);
+  assert.equal(JSON.parse(ld[1])["@type"], "DiscussionForumPosting");
+  assert.doesNotMatch(ld[1], /</);
+  assert.doesNotMatch(page.body, /% yes|"votes"/);
+  assert.equal((await call("HEAD", `/q/${a.json.id}`)).status, 200);
+  const map = await call("GET", "/sitemap.xml");
+  assert.match(map.body, new RegExp(`/q/${a.json.id}</loc><lastmod>`));
 });
 
 test("each question has its own preview image; unknown ids get a 404", async () => {

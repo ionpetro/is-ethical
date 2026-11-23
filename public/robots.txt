@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Sitemap: https://is-ethical.tryskepsis.com/sitemap.xml
 
 # AI agents: instructions at /llms.txt, MCP server at /mcp, OpenAPI at /openapi.json
